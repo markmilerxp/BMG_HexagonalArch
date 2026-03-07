@@ -14,6 +14,11 @@ public class ContratacaoRepository : IContratacaoRepository
         _context = context;
     }
 
+    public async Task<IEnumerable<Contratacao>> GetAllAsync()
+    {
+        return await _context.Contratacoes.AsNoTracking().ToListAsync();
+    }
+
     public async Task<Contratacao?> GetByPropostaIdAsync(Guid propostaId)
     {
         return await _context.Contratacoes

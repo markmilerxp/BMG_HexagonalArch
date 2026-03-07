@@ -157,4 +157,24 @@ public class PropostasController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    /// <summary>
+    /// Excluir proposta (somente se não estiver contratada)
+    /// </summary>
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> ExcluirProposta(Guid id)
+    {
+        try
+        {
+            var excluida = await _propostaService.ExcluirPropostaAsync(id);
+            if (!excluida)
+                return NotFound($"Proposta com ID {id} não encontrada");
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao excluir proposta {PropostaId}: {Message}", id, ex.Message);
+            return BadRequest(ex.Message);
+        }
+    }
 }

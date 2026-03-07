@@ -8,5 +8,6 @@ public interface IPropostaRepository
     Task<Proposta?> GetByIdAsync(Guid id);
     Task<Proposta> InsertAsync(Proposta proposta);
     Task<Proposta> UpdateAsync(Proposta proposta);
+    Task<bool> DeleteAsync(Guid id);
     Task<IEnumerable<Proposta>> GetByStatusAsync(StatusProposta status);
 }

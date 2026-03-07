@@ -1,5 +1,5 @@
 services:
-  # RabbitMQ Message Broker
+  # RabbitMQ Message Broker (README: 5672 AMQP, 15672 Management, guest/guest, vhost /)
   rabbitmq:
     image: rabbitmq:3-management
     container_name: seguros-rabbitmq

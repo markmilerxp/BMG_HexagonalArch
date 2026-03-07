@@ -43,7 +43,7 @@ public class PropostaServiceManager : IPropostaService
             throw new Exception($"Proposta com ID {id} não encontrada");
         }
 
-        // Verificar se a proposta já foi contratada
+        // Verificar se já existe contratação (registro em Contratacoes) — nesse caso o status no banco deve ser Contratada
         var contratacaoExistente = await _contratacaoRepository.GetByPropostaIdAsync(id);
         if (contratacaoExistente != null)
         {
@@ -51,10 +51,17 @@ public class PropostaServiceManager : IPropostaService
         }
 
         proposta.DefinirStatus(novoStatus);
-
         var propostaAtualizada = await _propostaRepository.UpdateAsync(proposta);
-
         return propostaAtualizada;
+    }
+
+    public async Task<Proposta> MarcarComoContratadaAsync(Guid id)
+    {
+        var proposta = await _propostaRepository.GetByIdAsync(id);
+        if (proposta == null)
+            throw new Exception($"Proposta com ID {id} não encontrada");
+        proposta.Contratar();
+        return await _propostaRepository.UpdateAsync(proposta);
     }
 
     public async Task<Proposta> AprovarPropostaAsync(Guid id)
@@ -72,6 +79,16 @@ public class PropostaServiceManager : IPropostaService
         await _statusEventService.PublicarMudancaStatusAsync(id, statusAnterior, StatusProposta.Aprovada);
 
         return propostaAprovada;
+    }
+
+    public async Task<bool> ExcluirPropostaAsync(Guid id)
+    {
+        var proposta = await _propostaRepository.GetByIdAsync(id);
+        if (proposta == null) return false;
+        var contratacao = await _contratacaoRepository.GetByPropostaIdAsync(id);
+        if (contratacao != null)
+            throw new Exception("Não é possível excluir proposta já contratada");
+        return await _propostaRepository.DeleteAsync(id);
     }
 
     public async Task<IEnumerable<Proposta>> GetPropostasByStatusAsync(StatusProposta status)

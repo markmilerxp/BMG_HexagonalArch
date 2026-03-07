@@ -16,7 +16,7 @@ public class PropostaRepository : IPropostaRepository
 
     public async Task<IEnumerable<Proposta>> GetAllAsync()
     {
-        return await _context.Propostas.ToListAsync();
+        return await _context.Propostas.AsNoTracking().ToListAsync();
     }
 
     public async Task<Proposta?> GetByIdAsync(Guid id)
@@ -64,6 +64,7 @@ public class PropostaRepository : IPropostaRepository
     public async Task<IEnumerable<Proposta>> GetByStatusAsync(StatusProposta status)
     {
         return await _context.Propostas
+            .AsNoTracking()
             .Where(p => p.Status == status)
             .ToListAsync();
     }

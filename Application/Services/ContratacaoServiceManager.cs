@@ -20,6 +20,11 @@ public class ContratacaoServiceManager : IContratacaoService
         _statusEventService = statusEventService;
     }
 
+    public async Task<IEnumerable<Contratacao>> GetAllContratacoesAsync()
+    {
+        return await _contratacaoRepository.GetAllAsync();
+    }
+
     public async Task<(Contratacao contratacao, bool jaExistia)> ContratarPropostaAsync(Guid propostaId)
     {
         var proposta = await _propostaService.GetPropostaByIdAsync(propostaId);
@@ -38,6 +43,9 @@ public class ContratacaoServiceManager : IContratacaoService
         {
             return (contratacaoExistente, true);
         }
+
+        // Atualiza o status da proposta para Contratada no banco antes de criar o registro de Contratacao
+        await _propostaService.MarcarComoContratadaAsync(propostaId);
 
         var contratacao = new Contratacao(propostaId);
         var contratacaoCriada = await _contratacaoRepository.InsertAsync(contratacao);

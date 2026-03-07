@@ -11,12 +11,68 @@ namespace API.Controllers;
 public class ContratacoesController : ControllerBase
 {
     private readonly IContratacaoService _contratacaoService;
+    private readonly IPropostaService _propostaService;
     private readonly ILogger<ContratacoesController> _logger;
 
-    public ContratacoesController(IContratacaoService contratacaoService, ILogger<ContratacoesController> logger)
+    public ContratacoesController(IContratacaoService contratacaoService, IPropostaService propostaService, ILogger<ContratacoesController> logger)
     {
         _contratacaoService = contratacaoService;
+        _propostaService = propostaService;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Todas as propostas com dados de contratação (DataContratacao, NumeroContrato) em uma única chamada — use este para a tela de Contratações.
+    /// </summary>
+    [HttpGet("propostas")]
+    public async Task<IActionResult> GetPropostasComContrato()
+    {
+        try
+        {
+            var propostas = await _propostaService.GetAllPropostasAsync();
+            var contratacoes = await _contratacaoService.GetAllContratacoesAsync();
+            var dictContrato = contratacoes.ToDictionary(c => c.PropostaId);
+            var result = propostas.Select(p =>
+            {
+                var dto = p.ToDto();
+                var c = dictContrato.TryGetValue(p.PropostaId, out var contr) ? contr : null;
+                return new PropostaComContratoDto
+                {
+                    PropostaId = dto.PropostaId,
+                    ClienteNome = dto.ClienteNome,
+                    ValorCobertura = dto.ValorCobertura,
+                    Status = dto.Status,
+                    DataAtualizacao = dto.DataAtualizacao,
+                    DataContratacao = c?.DataContratacao,
+                    NumeroContrato = c?.NumeroContrato
+                };
+            });
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao listar propostas com contrato");
+            return StatusCode(500, "Erro interno do servidor");
+        }
+    }
+
+    /// <summary>
+    /// Listar todas as contratações (PropostaId, DataContratacao, NumeroContrato)
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAllContratacoes()
+    {
+        try
+        {
+            var list = await _contratacaoService.GetAllContratacoesAsync();
+            var dtos = list.Select(c => c.ToDto());
+            return Ok(dtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao listar contratações");
+            return StatusCode(500, "Erro interno do servidor");
+        }
     }
 
     /// <summary>
