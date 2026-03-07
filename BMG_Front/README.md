@@ -1,6 +1,6 @@
 # 🖥️ BMG Seguros – Frontend
 
-Interface web para gerenciamento de **Propostas** e **Contratações** de seguros. Desenvolvido em **Angular**, consome a API do backend (Arquitetura Hexagonal).
+Interface web para gerenciamento de **Propostas** e **Contratações** de seguros. Desenvolvido em **Angular**, consome a API do backend (Arquitetura Hexagonal). *(README atualizado com ícones e estilo do backend.)*
 
 ## 📋 Visão Geral
 
