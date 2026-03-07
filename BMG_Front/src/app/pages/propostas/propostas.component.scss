@@ -1,0 +1,15 @@
+.mono-sm {
+  font-family: monospace;
+  font-size: 11px;
+  color: #666;
+}
+
+/* Cores da linha por status: amarelo, verde, vermelho, azul */
+tr.row-status-analise   { background: #fffde7 !important; }
+tr.row-status-analise:hover { background: #fff9c4 !important; }
+tr.row-status-aprovada  { background: #e8f5e9 !important; }
+tr.row-status-aprovada:hover { background: #c8e6c9 !important; }
+tr.row-status-rejeitada { background: #ffebee !important; }
+tr.row-status-rejeitada:hover { background: #ffcdd2 !important; }
+tr.row-status-contratada { background: #e3f2fd !important; }
+tr.row-status-contratada:hover { background: #bbdefb !important; }

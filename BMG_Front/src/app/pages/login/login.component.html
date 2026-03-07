@@ -1,0 +1,41 @@
+<div class="login-wrapper">
+  <div class="login-card">
+
+    <div class="login-header">
+      <span class="login-logo-icon">🛡️</span>
+      <h1>BMG Seguros</h1>
+      <p>Sistema de Propostas e Contratações</p>
+    </div>
+
+    <div class="login-body">
+      <div class="form-field">
+        <label>Usuário <span class="required">*</span></label>
+        <input
+          type="text"
+          [(ngModel)]="username"
+          placeholder="usuário"
+          (keydown)="onKeydown($event)"
+          autocomplete="username"
+        />
+      </div>
+
+      <div class="form-field">
+        <label>Senha <span class="required">*</span></label>
+        <input
+          type="password"
+          [(ngModel)]="password"
+          placeholder="senha"
+          (keydown)="onKeydown($event)"
+          autocomplete="current-password"
+        />
+      </div>
+
+      <div class="alert alert-error" *ngIf="erro">{{ erro }}</div>
+
+      <button class="btn-login" (click)="entrar()" [disabled]="carregando">
+        <span *ngIf="!carregando">Entrar</span>
+        <span *ngIf="carregando" class="spinner-sm"></span>
+      </button>
+    </div>
+  </div>
+</div>

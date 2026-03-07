@@ -1,0 +1,114 @@
+<div class="page-container">
+
+  <div class="alert alert-success" *ngIf="sucesso">
+    {{ sucesso }}
+    <button class="alert-close" (click)="sucesso = ''">×</button>
+  </div>
+  <div class="alert alert-error" *ngIf="erro">
+    {{ erro }}
+    <button class="alert-close" (click)="erro = ''">×</button>
+  </div>
+
+  <!-- Painel: Dados da proposta selecionada (acima do grid) -->
+  <div class="panel" *ngIf="propostaSelecionada">
+    <h2 class="panel-title">Proposta selecionada — clique na linha do grid para ver ou limpar</h2>
+    <div class="panel-body">
+      <div class="form-row">
+        <div class="form-field">
+          <label>PropostaId</label>
+          <input type="text" [value]="propostaSelecionada.propostaId" disabled class="mono-sm" />
+        </div>
+        <div class="form-field">
+          <label>Cliente</label>
+          <input type="text" [value]="propostaSelecionada.clienteNome" disabled />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Valor Cobertura (R$)</label>
+          <input type="text" [value]="formatarValor(propostaSelecionada.valorCobertura)" disabled />
+        </div>
+        <div class="form-field">
+          <label>Status</label>
+          <input type="text" [value]="statusLabels[propostaSelecionada.status]" disabled />
+        </div>
+        <div class="form-field">
+          <label>Última Atualização</label>
+          <input type="text" [value]="formatarData(propostaSelecionada.dataAtualizacao)" disabled />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Data Contratação</label>
+          <input type="text" [value]="propostaSelecionada.dataContratacao ? formatarData(propostaSelecionada.dataContratacao) : '-'" disabled />
+        </div>
+        <div class="form-field">
+          <label>Nº Contrato</label>
+          <input type="text" [value]="propostaSelecionada.numeroContrato || '-'" disabled class="mono-sm" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grid: Todas as propostas com os 3 campos da contratação -->
+  <div class="panel">
+    <div class="panel-title">
+      <span>Contratações</span>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" [(ngModel)]="filtro" placeholder="Buscar por ID, nome ou status (Em Análise, Aprovada, Rejeitada, Contratada)" (ngModelChange)="aplicarFiltro()" />
+      </div>
+    </div>
+    <p class="panel-hint">Exibidas todas as propostas. Os 3 campos da contratação (PropostaId, Data Contratação, Nº Contrato) são preenchidos quando a proposta foi contratada. Somente propostas Aprovadas podem ser contratadas.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:220px">PropostaId</th>
+          <th>Cliente</th>
+          <th>Valor Cobertura</th>
+          <th>Status</th>
+          <th>Última Atualização</th>
+          <th>Data Contratação</th>
+          <th>Nº Contrato</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="loading-row" *ngIf="carregando">
+          <td colspan="8"><span class="spinner-dark"></span> Carregando...</td>
+        </tr>
+        <tr class="empty-row" *ngIf="!carregando && propostasFiltradas.length === 0">
+          <td colspan="8">Nenhuma proposta encontrada.</td>
+        </tr>
+        <tr *ngFor="let p of propostasFiltradas" (click)="selecionarProposta(p)" [class.row-selected]="propostaSelecionada?.propostaId === p.propostaId" class="row-clickable">
+          <td class="mono-sm">{{ p.propostaId }}</td>
+          <td>{{ p.clienteNome }}</td>
+          <td>{{ formatarValor(p.valorCobertura) }}</td>
+          <td>
+            <span class="badge" [ngClass]="getStatusClass(p.status)">
+              {{ statusLabels[p.status] || p.status }}
+            </span>
+          </td>
+          <td>{{ formatarData(p.dataAtualizacao) }}</td>
+          <td>{{ p.dataContratacao ? formatarData(p.dataContratacao) : '-' }}</td>
+          <td class="mono-sm">{{ p.numeroContrato || '-' }}</td>
+          <td class="col-actions">
+            <div class="actions-group">
+              <button
+                class="btn-primary btn-sm"
+                title="Confirmar contratação (somente proposta Aprovada)"
+                (click)="$event.stopPropagation(); contratarProposta(p)"
+                [disabled]="contratandoId === p.propostaId || (p.status !== 'Aprovada')"
+              >
+                <span *ngIf="contratandoId !== p.propostaId">Confirmar</span>
+                <span *ngIf="contratandoId === p.propostaId" class="spinner-sm"></span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

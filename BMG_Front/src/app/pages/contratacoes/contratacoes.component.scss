@@ -1,0 +1,20 @@
+.resultado-panel {
+  border-top: 1px solid #e0e0e0;
+  overflow-x: auto;
+}
+
+.mono-sm {
+  font-family: monospace;
+  font-size: 11px;
+  color: #666;
+}
+
+.row-clickable {
+  cursor: pointer;
+}
+
+.row-selected {
+  background: #e3f2fd !important;
+  outline: 2px solid #3d7fc1;
+  outline-offset: -2px;
+}

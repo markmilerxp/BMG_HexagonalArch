@@ -1,0 +1,34 @@
+<div class="app-shell" [class.no-nav]="isLoginPage">
+
+  <!-- Menu lateral -->
+  <aside class="sidebar" *ngIf="!isLoginPage && auth.isLoggedIn()">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🛡️</span>
+      <span class="logo-text">BMG Seguros</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a *ngFor="let item of navItems" [routerLink]="item.route" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a routerLink="/help" routerLinkActive="active" class="nav-item">
+        <span class="nav-icon">❓</span>
+        <span class="nav-label">Help</span>
+      </a>
+      <button type="button" class="nav-item btn-logout" (click)="logout()">
+        <span class="nav-icon">⏻</span>
+        <span class="nav-label">Logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Conteúdo principal -->
+  <main class="main-content" [class.full-width]="isLoginPage">
+    <router-outlet></router-outlet>
+  </main>
+
+</div>

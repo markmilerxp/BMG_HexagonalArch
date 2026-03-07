@@ -1,0 +1,61 @@
+<div class="help-page">
+  <div class="help-content">
+    <h1>🛡️ BMG Seguros – Ajuda do Sistema</h1>
+    <p class="lead">Sistema de gerenciamento de <strong>Propostas</strong> e <strong>Contratações</strong> de seguros.</p>
+
+    <section>
+      <h2>1. Visão geral</h2>
+      <p>O sistema permite criar propostas de seguro, alterar seu status e contratar as propostas aprovadas. A comunicação com o backend usa API REST e as regras de negócio estão descritas abaixo.</p>
+    </section>
+
+    <section>
+      <h2>2. Status das propostas</h2>
+      <p>Cada proposta possui um dos quatro status abaixo. As transições permitidas são controladas.</p>
+      <table class="help-table">
+        <thead>
+          <tr><th>Status</th><th>Valor</th><th>Descrição</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Em Análise</td><td>1</td><td>Status inicial ao criar a proposta</td></tr>
+          <tr><td>Aprovada</td><td>2</td><td>Proposta aprovada e pode ser contratada</td></tr>
+          <tr><td>Rejeitada</td><td>3</td><td>Proposta rejeitada</td></tr>
+          <tr><td>Contratada</td><td>4</td><td>Proposta já contratada (status final)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>3. Regras de transição de status</h2>
+      <ul>
+        <li><strong>Em Análise</strong> → pode ir para <strong>Aprovada</strong> ou <strong>Rejeitada</strong></li>
+        <li><strong>Aprovada</strong> → pode ir para <strong>Contratada</strong> (somente pela tela de Contratações, ao confirmar)</li>
+        <li><strong>Rejeitada</strong> → não pode mudar para outro status</li>
+        <li><strong>Contratada</strong> → não pode mudar para outro status</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>4. Tela Propostas</h2>
+      <ul>
+        <li><strong>Criar proposta:</strong> preencha Nome do Cliente e Valor da Cobertura. A proposta é criada com status "Em Análise".</li>
+        <li><strong>Alterar status:</strong> use o botão de edição na linha e escolha o novo status (apenas transições permitidas).</li>
+        <li><strong>Excluir:</strong> só é possível excluir proposta com status <strong>diferente de Contratada</strong>.</li>
+        <li><strong>Busca:</strong> filtre por ID da proposta, nome do cliente ou status (incluindo texto do status, ex.: "Em Análise", "Aprovada").</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>5. Tela Contratações</h2>
+      <ul>
+        <li>São listadas <strong>todas as propostas</strong>, com qualquer status.</li>
+        <li>Os três campos da contratação (<strong>PropostaId</strong>, <strong>Data Contratação</strong>, <strong>Nº Contrato</strong>) são preenchidos quando a proposta já foi contratada.</li>
+        <li>O botão <strong>Confirmar</strong> só é habilitado para propostas com status <strong>Aprovada</strong>. Ao confirmar, a proposta passa a "Contratada" e é gerado o número do contrato.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>6. Login</h2>
+      <p>Use <strong>usuário: admin</strong> e <strong>senha: admin</strong> para acessar o sistema.</p>
+    </section>
+  </div>
+</div>

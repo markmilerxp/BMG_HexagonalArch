@@ -1,0 +1,161 @@
+<div class="page-container">
+
+  <!-- Alertas globais -->
+  <div class="alert alert-success" *ngIf="sucesso">
+    {{ sucesso }}
+    <button class="alert-close" (click)="fecharSucesso()">×</button>
+  </div>
+  <div class="alert alert-error" *ngIf="erro">
+    {{ erro }}
+    <button class="alert-close" (click)="fecharErro()">×</button>
+  </div>
+
+  <!-- Painel: Formulário -->
+  <div class="panel">
+    <h2 class="panel-title">{{ editando ? 'Alterar Status da Proposta' : 'Create Proposta' }}</h2>
+    <div class="panel-body">
+
+      <!-- Formulário nova proposta (todos os campos visíveis da tabela) -->
+      <ng-container *ngIf="!editando">
+        <div class="form-row">
+          <div class="form-field">
+            <label>ID da Proposta</label>
+            <input type="text" value="(será gerado ao salvar)" disabled />
+          </div>
+          <div class="form-field">
+            <label>Nome do Cliente <span class="required">*</span></label>
+            <input type="text" [(ngModel)]="novaPropostaForm.clienteNome" placeholder="Nome completo do cliente" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Valor da Cobertura (R$) <span class="required">*</span></label>
+            <input type="number" [(ngModel)]="novaPropostaForm.valorCobertura" placeholder="Ex: 50000.00" min="0.01" step="0.01" />
+          </div>
+          <div class="form-field">
+            <label>Status</label>
+            <input type="text" value="Em Análise (inicial)" disabled />
+          </div>
+          <div class="form-field">
+            <label>Última Atualização</label>
+            <input type="text" [value]="dataHoje" disabled />
+          </div>
+        </div>
+        <div class="alert alert-error" *ngIf="erroForm" style="margin-bottom:12px">{{ erroForm }}</div>
+        <div class="form-actions">
+          <button class="btn-primary" (click)="salvarProposta()" [disabled]="salvando">
+            <span *ngIf="!salvando">Create</span>
+            <span *ngIf="salvando" class="spinner-sm"></span>
+          </button>
+          <button class="btn-secondary" (click)="cancelarForm()">Cancel</button>
+        </div>
+      </ng-container>
+
+      <!-- Formulário alterar status (todos os campos visíveis da tabela + novo status) -->
+      <ng-container *ngIf="editando && propostaSelecionada">
+        <div class="form-row">
+          <div class="form-field">
+            <label>ID da Proposta</label>
+            <input type="text" [value]="propostaSelecionada.propostaId" disabled class="mono-sm" />
+          </div>
+          <div class="form-field">
+            <label>Nome do Cliente</label>
+            <input type="text" [value]="propostaSelecionada.clienteNome" disabled />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Valor da Cobertura (R$)</label>
+            <input type="text" [value]="formatarValor(propostaSelecionada.valorCobertura)" disabled />
+          </div>
+          <div class="form-field">
+            <label>Status Atual</label>
+            <input type="text" [value]="statusLabels[propostaSelecionada.status]" disabled />
+          </div>
+          <div class="form-field">
+            <label>Última Atualização</label>
+            <input type="text" [value]="formatarData(propostaSelecionada.dataAtualizacao)" disabled />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Novo Status <span class="required">*</span></label>
+            <select [(ngModel)]="novoStatus">
+              <option value="" disabled>Selecione...</option>
+              <option *ngFor="let s of statusDisponiveis" [value]="s">{{ statusLabels[s] }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" (click)="confirmarStatus()" [disabled]="atualizandoStatus || !novoStatus">
+            <span *ngIf="!atualizandoStatus">Confirmar</span>
+            <span *ngIf="atualizandoStatus" class="spinner-sm"></span>
+          </button>
+          <button class="btn-secondary" (click)="cancelarForm()">Cancel</button>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+
+  <!-- Painel: Lista -->
+  <div class="panel">
+    <div class="panel-title">
+      <span>Propostas List</span>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" [(ngModel)]="filtro" placeholder="Buscar por ID, nome ou status (Em Análise, Aprovada, Rejeitada, Contratada)" (ngModelChange)="aplicarFiltro()" />
+      </div>
+    </div>
+    <p class="panel-hint">Só é possível excluir propostas com status diferente de Contratada.</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:220px">ID</th>
+          <th>Cliente</th>
+          <th>Valor Cobertura</th>
+          <th>Status</th>
+          <th>Última Atualização</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="loading-row" *ngIf="carregando">
+          <td colspan="6"><span class="spinner-dark"></span> Carregando...</td>
+        </tr>
+        <tr class="empty-row" *ngIf="!carregando && propostasFiltradas.length === 0">
+          <td colspan="6">Nenhuma proposta encontrada.</td>
+        </tr>
+        <tr *ngFor="let p of propostasFiltradas" [ngClass]="getRowStatusClass(p.status)">
+          <td class="mono-sm">{{ p.propostaId }}</td>
+          <td>{{ p.clienteNome }}</td>
+          <td>{{ formatarValor(p.valorCobertura) }}</td>
+          <td>
+            <span class="badge" [ngClass]="getStatusClass(p.status)">
+              {{ statusLabels[p.status] || p.status }}
+            </span>
+          </td>
+          <td>{{ formatarData(p.dataAtualizacao) }}</td>
+          <td class="col-actions">
+            <div class="actions-group">
+              <button
+                class="btn-icon btn-edit"
+                title="Alterar status"
+                (click)="iniciarEdicao(p)"
+                [disabled]="!podeAlterar(p.status)"
+              >✏️</button>
+              <button
+                class="btn-icon btn-danger"
+                title="Excluir (somente se status for diferente de Contratada)"
+                (click)="excluirProposta(p)"
+                [disabled]="!podeExcluir(p.status)"
+              >🗑️</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
