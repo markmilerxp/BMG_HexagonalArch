@@ -54,14 +54,6 @@ Este projeto é a versão em **Vite + React + TypeScript** do front de Propostas
   - Rodar `npm run build` em `bmg_front_react_vite` para garantir que o TypeScript e o Vite compilam sem erro.
   - Depois subir o dev server normalmente com `npm run dev`.
 
-### Próximo passo (compartilhar as telas)
-
-- O código de **models, services, páginas e modal** está hoje em `bmg_front_react/src/...`.
-- Para a versão Vite usar exatamente as mesmas telas, basta copiar:
-  - `src/models`, `src/services`, `src/components/ConfirmModal*`, `src/pages/PropostasPage*`, `src/pages/ContratacoesPage*`
-  - para dentro de `bmg_front_react_vite/src/` mantendo a mesma estrutura de pastas.
-- O código foi escrito de forma agnóstica de bundler, então funciona igual em Vite.
-
 ### Como rodar o front com Vite
 
 1. Backend .NET rodando (mesma API usada pelo Angular e pelo CRA).
