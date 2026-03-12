@@ -55,6 +55,18 @@ public class PropostaServiceManager : IPropostaService
         return propostaAtualizada;
     }
 
+    public async Task<Proposta> AtualizarPropostaAsync(Guid id, string clienteNome, decimal valorCobertura, StatusProposta novoStatus)
+    {
+        var proposta = await _propostaRepository.GetByIdAsync(id);
+        if (proposta == null)
+            throw new Exception($"Proposta com ID {id} não encontrada");
+        var contratacaoExistente = await _contratacaoRepository.GetByPropostaIdAsync(id);
+        if (contratacaoExistente != null)
+            throw new Exception("Não é possível alterar proposta já contratada");
+        proposta.AtualizarDados(clienteNome, valorCobertura, novoStatus);
+        return await _propostaRepository.UpdateAsync(proposta);
+    }
+
     public async Task<Proposta> MarcarComoContratadaAsync(Guid id)
     {
         var proposta = await _propostaRepository.GetByIdAsync(id);

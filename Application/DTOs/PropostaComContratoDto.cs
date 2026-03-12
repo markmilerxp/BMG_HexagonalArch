@@ -6,7 +6,8 @@ public class PropostaComContratoDto
     public Guid PropostaId { get; set; }
     public string ClienteNome { get; set; } = string.Empty;
     public decimal ValorCobertura { get; set; }
-    public string Status { get; set; } = string.Empty;
+    /// <summary>Número do enum: 1=EmAnalise, 2=Aprovada, 3=Rejeitada, 4=Contratada.</summary>
+    public int Status { get; set; }
     public DateTime? DataAtualizacao { get; set; }
     public DateTime? DataContratacao { get; set; }
     public string? NumeroContrato { get; set; }

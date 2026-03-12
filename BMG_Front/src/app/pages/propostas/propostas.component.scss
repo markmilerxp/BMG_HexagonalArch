@@ -1,3 +1,29 @@
+/* Dropdown de status: garantir que apareça como select clicável */
+.dropdown-status {
+  cursor: pointer;
+  padding-right: 28px;
+  min-width: 220px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+}
+
+/* Novo Status na edição: sempre habilitado e clicável */
+#novoStatusSelect {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  background-color: #fff !important;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.col-id {
+  min-width: 140px;
+}
+
 .mono-sm {
   font-family: monospace;
   font-size: 11px;

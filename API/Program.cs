@@ -45,7 +45,7 @@ builder.Services.AddCors(options =>
 
 // Configure database and services
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
-builder.Services.AddApplicationService(connectionString);
+builder.Services.AddApplicationService(connectionString, builder.Configuration);
 
 
 var app = builder.Build();

@@ -34,7 +34,9 @@
           </div>
           <div class="form-field">
             <label>Status</label>
-            <input type="text" value="Em Análise (inicial)" disabled />
+            <select [(ngModel)]="statusInicialNumero" name="statusInicial" class="dropdown-status">
+              <option *ngFor="let n of statusNumeros" [ngValue]="n" [disabled]="n !== 1">{{ labelStatus(n) }}{{ n === 1 ? ' (inicial)' : '' }}</option>
+            </select>
           </div>
           <div class="form-field">
             <label>Última Atualização</label>
@@ -51,7 +53,7 @@
         </div>
       </ng-container>
 
-      <!-- Formulário alterar status (todos os campos visíveis da tabela + novo status) -->
+      <!-- Formulário editar proposta: campos editáveis + novo status; data do dia só leitura -->
       <ng-container *ngIf="editando && propostaSelecionada">
         <div class="form-row">
           <div class="form-field">
@@ -59,35 +61,37 @@
             <input type="text" [value]="propostaSelecionada.propostaId" disabled class="mono-sm" />
           </div>
           <div class="form-field">
-            <label>Nome do Cliente</label>
-            <input type="text" [value]="propostaSelecionada.clienteNome" disabled />
+            <label>Nome do Cliente <span class="required">*</span></label>
+            <input type="text" [(ngModel)]="edicaoClienteNome" placeholder="Nome completo do cliente" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-field">
-            <label>Valor da Cobertura (R$)</label>
-            <input type="text" [value]="formatarValor(propostaSelecionada.valorCobertura)" disabled />
+            <label>Valor da Cobertura (R$) <span class="required">*</span></label>
+            <input type="number" [(ngModel)]="edicaoValorCobertura" placeholder="Ex: 50000.00" min="0.01" step="0.01" />
           </div>
           <div class="form-field">
             <label>Status Atual</label>
-            <input type="text" [value]="statusLabels[propostaSelecionada.status]" disabled />
+            <select [ngModel]="statusAtualNumero" name="statusAtual" class="dropdown-status" disabled>
+              <option *ngFor="let n of statusNumeros" [ngValue]="n">{{ labelStatus(n) }}</option>
+            </select>
           </div>
           <div class="form-field">
             <label>Última Atualização</label>
-            <input type="text" [value]="formatarData(propostaSelecionada.dataAtualizacao)" disabled />
+            <input type="text" [value]="dataEdicao" disabled title="Atualizada ao salvar" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-field">
             <label>Novo Status <span class="required">*</span></label>
-            <select [(ngModel)]="novoStatus">
-              <option value="" disabled>Selecione...</option>
-              <option *ngFor="let s of statusDisponiveis" [value]="s">{{ statusLabels[s] }}</option>
+            <select id="novoStatusSelect" class="dropdown-status" [value]="novoStatusStr" (change)="novoStatusStr = $any($event.target).value" [disabled]="false" tabindex="0">
+              <option *ngFor="let n of opcoesStatusEdicaoList" [value]="n">{{ labelStatus(n) }}</option>
             </select>
           </div>
         </div>
+        <div class="alert alert-error" *ngIf="erroForm" style="margin-bottom:12px">{{ erroForm }}</div>
         <div class="form-actions">
-          <button class="btn-primary" (click)="confirmarStatus()" [disabled]="atualizandoStatus || !novoStatus">
+          <button class="btn-primary" (click)="confirmarEdicao()" [disabled]="atualizandoStatus">
             <span *ngIf="!atualizandoStatus">Confirmar</span>
             <span *ngIf="atualizandoStatus" class="spinner-sm"></span>
           </button>
@@ -109,10 +113,11 @@
     </div>
     <p class="panel-hint">Só é possível excluir propostas com status diferente de Contratada.</p>
 
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th style="width:220px">ID</th>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-id">ID</th>
           <th>Cliente</th>
           <th>Valor Cobertura</th>
           <th>Status</th>
@@ -124,16 +129,16 @@
         <tr class="loading-row" *ngIf="carregando">
           <td colspan="6"><span class="spinner-dark"></span> Carregando...</td>
         </tr>
-        <tr class="empty-row" *ngIf="!carregando && propostasFiltradas.length === 0">
+        <tr class="empty-row" *ngIf="!carregando && (propostasFiltradas$ | async)?.length === 0">
           <td colspan="6">Nenhuma proposta encontrada.</td>
         </tr>
-        <tr *ngFor="let p of propostasFiltradas" [ngClass]="getRowStatusClass(p.status)">
+        <tr *ngFor="let p of (propostasFiltradas$ | async) ?? []; trackBy: trackByPropostaId" [ngClass]="getRowStatusClass(p.status)">
           <td class="mono-sm">{{ p.propostaId }}</td>
           <td>{{ p.clienteNome }}</td>
           <td>{{ formatarValor(p.valorCobertura) }}</td>
           <td>
             <span class="badge" [ngClass]="getStatusClass(p.status)">
-              {{ statusLabels[p.status] || p.status }}
+              {{ labelStatus(p.status) }}
             </span>
           </td>
           <td>{{ formatarData(p.dataAtualizacao) }}</td>
@@ -148,14 +153,26 @@
               <button
                 class="btn-icon btn-danger"
                 title="Excluir (somente se status for diferente de Contratada)"
-                (click)="excluirProposta(p)"
+                (click)="abrirModalExcluir(p)"
                 [disabled]="!podeExcluir(p.status)"
               >🗑️</button>
             </div>
           </td>
         </tr>
       </tbody>
-    </table>
+      </table>
+    </div>
   </div>
 
+  <!-- Modal de confirmação de exclusão -->
+  <app-confirm-modal
+    *ngIf="modalExcluirAberto && propostaAExcluir"
+    titulo="Excluir proposta"
+    [mensagem]="mensagemModalExcluir"
+    labelConfirmar="Excluir"
+    labelCancelar="Cancelar"
+    tipo="perigo"
+    (confirmar)="confirmarExcluir()"
+    (cancelar)="fecharModalExcluir()"
+  ></app-confirm-modal>
 </div>

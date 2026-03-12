@@ -162,7 +162,7 @@ public class ContratacoesController : ControllerBase
             return Ok(new
             {
                 Mensagem = "OK",
-                Status = proposta.Status.ToString()
+                Status = (int)proposta.Status
             });
         }
         catch (Exception ex)

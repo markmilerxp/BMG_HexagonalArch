@@ -59,6 +59,18 @@ public sealed class Proposta
         DataAtualizacao = DateTime.UtcNow;
     }
 
+    /// <summary>Atualiza nome, valor e status e define DataAtualizacao como agora.</summary>
+    public void AtualizarDados(string clienteNome, decimal valorCobertura, StatusProposta novoStatus)
+    {
+        if (Status == StatusProposta.Contratada)
+            throw new InvalidOperationException("Não é possível alterar proposta já contratada");
+        Validate(clienteNome, valorCobertura);
+        ClienteNome = clienteNome;
+        ValorCobertura = valorCobertura;
+        Status = novoStatus;
+        DataAtualizacao = DateTime.UtcNow;
+    }
+
     private static void Validate(string clienteNome, decimal valorCobertura)
     {
         if (string.IsNullOrWhiteSpace(clienteNome) || clienteNome.Length < 3)

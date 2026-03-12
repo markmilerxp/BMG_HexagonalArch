@@ -7,15 +7,23 @@ import { ContratacaoResponse, ContratacaoDto, ContratarRequest, VerificarStatusR
 
 function toPropostaComContratoDto(p: any): PropostaComContratoDto {
   const raw = p ?? {};
+  const status = raw.status ?? raw.Status ?? 1;
   return {
     propostaId: raw.propostaId ?? raw.PropostaId ?? '',
     clienteNome: raw.clienteNome ?? raw.ClienteNome ?? '',
     valorCobertura: Number(raw.valorCobertura ?? raw.ValorCobertura ?? 0),
-    status: raw.status ?? raw.Status ?? '',
+    status: typeof status === 'number' && status >= 1 && status <= 4 ? status : 1,
     dataAtualizacao: raw.dataAtualizacao ?? raw.DataAtualizacao ?? null,
     dataContratacao: raw.dataContratacao ?? raw.DataContratacao ?? null,
     numeroContrato: raw.numeroContrato ?? raw.NumeroContrato ?? null
   };
+}
+
+/** Garante que a resposta seja sempre um array. */
+function asArrayPropostasComContrato(raw: any): PropostaComContratoDto[] {
+  if (Array.isArray(raw)) return raw.map(toPropostaComContratoDto);
+  if (raw != null && typeof raw === 'object') return [toPropostaComContratoDto(raw)];
+  return [];
 }
 
 function toContratacaoDto(c: any): ContratacaoDto {
@@ -43,8 +51,8 @@ export class ContratacaoService {
 
   /** Todas as propostas com dados de contratação em uma única chamada (mais rápido). */
   listarPropostasComContrato(): Observable<PropostaComContratoDto[]> {
-    return this.http.get<any[]>(`${this.url}/propostas`).pipe(
-      map(list => (list ?? []).map(toPropostaComContratoDto))
+    return this.http.get<any>(`${this.url}/propostas`).pipe(
+      map(raw => asArrayPropostasComContrato(raw))
     );
   }
 
@@ -62,7 +70,7 @@ export class ContratacaoService {
     return this.http.get<any>(`${this.url}/verificar-status/${propostaId}`).pipe(
       map(r => ({
         mensagem: r?.mensagem ?? r?.Mensagem ?? 'OK',
-        status: r?.status ?? r?.Status ?? ''
+        status: Number(r?.status ?? r?.Status ?? 1)
       }))
     );
   }

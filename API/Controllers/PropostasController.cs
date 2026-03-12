@@ -105,6 +105,27 @@ public class PropostasController : ControllerBase
     }
 
     /// <summary>
+    /// Atualizar proposta (nome, valor, status). A data de atualização é definida automaticamente no servidor.
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> AtualizarProposta(Guid id, [FromBody] AtualizarPropostaDto dto)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var novoStatus = dto.Status.ToStatusProposta();
+            var proposta = await _propostaService.AtualizarPropostaAsync(id, dto.ClienteNome, dto.ValorCobertura, novoStatus);
+            return Ok(proposta.ToDto());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao atualizar proposta {PropostaId}: {Message}", id, ex.Message);
+            return BadRequest(ex.Message);
+        }
+    }
+
+    /// <summary>
     /// 🔄 Alterar status da proposta
     /// </summary>
     /// <remarks>

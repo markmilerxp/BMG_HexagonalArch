@@ -1,0 +1,10 @@
+<div class="modal-overlay" (click)="onCancelar()">
+  <div class="modal-box" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="titulo">
+    <h3 class="modal-title">{{ titulo }}</h3>
+    <p class="modal-message">{{ mensagem }}</p>
+    <div class="modal-actions">
+      <button type="button" class="btn-modal btn-cancelar" (click)="onCancelar()">{{ labelCancelar }}</button>
+      <button type="button" class="btn-modal btn-confirmar" [class.perigo]="tipo === 'perigo'" (click)="onConfirmar()">{{ labelConfirmar }}</button>
+    </div>
+  </div>
+</div>

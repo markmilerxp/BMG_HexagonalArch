@@ -12,7 +12,7 @@ public static class PropostaMapper
             PropostaId = proposta.PropostaId,
             ClienteNome = proposta.ClienteNome,
             ValorCobertura = proposta.ValorCobertura,
-            Status = proposta.Status.ToString(),
+            Status = (int)proposta.Status,
             DataAtualizacao = proposta.DataAtualizacao
         };
     }
@@ -26,10 +26,11 @@ public static class PropostaMapper
         return proposta;
     }
 
-    public static StatusProposta ToStatusProposta(this string status)
+    /// <summary>Converte número do enum (1-4) para StatusProposta.</summary>
+    public static StatusProposta ToStatusProposta(this int status)
     {
-        return Enum.TryParse<StatusProposta>(status, true, out var result)
-            ? result
-            : throw new ArgumentException($"Status inválido: {status}");
+        if (status >= 1 && status <= 4)
+            return (StatusProposta)status;
+        throw new ArgumentException($"Status inválido: {status}. Use 1=EmAnalise, 2=Aprovada, 3=Rejeitada, 4=Contratada.");
     }
 }

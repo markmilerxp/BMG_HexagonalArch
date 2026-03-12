@@ -93,7 +93,15 @@ html, body {
     &::placeholder { color: #bbb; }
   }
 
-  select { cursor: pointer; }
+  select {
+    cursor: pointer;
+    padding-right: 28px;
+    min-width: 200px;
+    max-width: 320px;
+    appearance: auto;
+    -webkit-appearance: menulist;
+    -moz-appearance: menulist;
+  }
 
   .field-error {
     font-size: 11px;

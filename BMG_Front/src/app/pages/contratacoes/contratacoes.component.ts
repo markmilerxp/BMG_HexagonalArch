@@ -1,22 +1,30 @@
 import { Component, OnInit } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+import { timeout, catchError, finalize, of } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContratacaoService } from '../../services/contratacao.service';
 import { PropostaComContratoDto } from '../../models/contratacao.model';
-import { STATUS_LABELS } from '../../models/proposta.model';
+import { STATUS_NUMEROS, STATUS_LABEL_POR_NUMERO, type StatusNumero } from '../../models/proposta.model';
+import { ConfirmModalComponent } from '../../shared/confirm-modal/confirm-modal.component';
 
 @Component({
   selector: 'app-contratacoes',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent],
   templateUrl: './contratacoes.component.html',
   styleUrls: ['./contratacoes.component.scss']
 })
 export class ContratacoesComponent implements OnInit {
-  statusLabels = STATUS_LABELS;
+  statusNumeros = STATUS_NUMEROS;
+  statusLabelPorNumero = STATUS_LABEL_POR_NUMERO;
 
+  labelStatus(n: number): string {
+    return STATUS_LABEL_POR_NUMERO[n as StatusNumero] ?? '';
+  }
+
+  propostasFiltradas$ = new BehaviorSubject<PropostaComContratoDto[]>([]);
   propostas: PropostaComContratoDto[] = [];
-  propostasFiltradas: PropostaComContratoDto[] = [];
   propostaSelecionada: PropostaComContratoDto | null = null;
   filtro = '';
   carregando = false;
@@ -24,6 +32,12 @@ export class ContratacoesComponent implements OnInit {
   sucesso = '';
 
   contratandoId: string | null = null;
+  modalContratarAberto = false;
+
+  get mensagemModalContratar(): string {
+    if (!this.propostaSelecionada) return 'Deseja realmente contratar esta proposta?';
+    return `Deseja realmente contratar a proposta de "${this.propostaSelecionada.clienteNome}" (${this.formatarValor(this.propostaSelecionada.valorCobertura)})?`;
+  }
 
   constructor(private contratacaoService: ContratacaoService) {}
 
@@ -35,17 +49,22 @@ export class ContratacoesComponent implements OnInit {
     this.carregando = true;
     this.erro = '';
     this.propostaSelecionada = null;
-    this.contratacaoService.listarPropostasComContrato().subscribe({
-      next: (data) => {
-        this.propostas = data ?? [];
-        this.aplicarFiltro();
-        this.carregando = false;
-      },
-      error: () => {
-        this.erro = 'Erro ao carregar dados.';
-        this.carregando = false;
-      }
+    this.contratacaoService.listarPropostasComContrato().pipe(
+      timeout(15000),
+      catchError(() => {
+        this.erro = 'Erro ou timeout ao carregar. Verifique se a API está rodando (ex.: localhost:5240).';
+        return of([]);
+      }),
+      finalize(() => { this.carregando = false; })
+    ).subscribe(data => {
+      const list = Array.isArray(data) ? [...data] : [];
+      this.propostas = list;
+      this.aplicarFiltro();
     });
+  }
+
+  trackByPropostaId(_index: number, p: PropostaComContratoDto): string {
+    return p.propostaId;
   }
 
   selecionarProposta(p: PropostaComContratoDto): void {
@@ -55,15 +74,28 @@ export class ContratacoesComponent implements OnInit {
   aplicarFiltro(): void {
     const termo = (this.filtro ?? '').toLowerCase().trim();
     const list = this.propostas ?? [];
-    this.propostasFiltradas = termo
+    const filtradas = termo
       ? list.filter(p => {
           const nome = (p.clienteNome ?? '').toLowerCase();
-          const status = (p.status ?? '').toLowerCase();
-          const statusLabel = (this.statusLabels[p.status ?? ''] ?? '').toLowerCase();
+          const statusLabel = (STATUS_LABEL_POR_NUMERO[p.status as StatusNumero] ?? '').toLowerCase();
           const id = (p.propostaId ?? '').toLowerCase();
-          return id.includes(termo) || nome.includes(termo) || status.includes(termo) || statusLabel.includes(termo);
+          return id.includes(termo) || nome.includes(termo) || String(p.status).includes(termo) || statusLabel.includes(termo);
         })
       : [...list];
+    this.propostasFiltradas$.next(filtradas);
+  }
+
+  abrirModalContratar(): void {
+    if (this.propostaSelecionada?.status === 2) this.modalContratarAberto = true; // 2 = Aprovada
+  }
+
+  fecharModalContratar(): void {
+    this.modalContratarAberto = false;
+  }
+
+  confirmarContratar(): void {
+    this.fecharModalContratar();
+    if (this.propostaSelecionada) this.contratarProposta(this.propostaSelecionada);
   }
 
   contratarProposta(p: PropostaComContratoDto): void {
@@ -88,18 +120,18 @@ export class ContratacoesComponent implements OnInit {
     return (valor ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
-  formatarData(data: string | null): string {
-    if (!data) return '-';
+  formatarData(data: string | null | undefined): string {
+    if (data == null || data === '') return '-';
     return new Date(data).toLocaleString('pt-BR');
   }
 
-  getStatusClass(status: string): string {
-    const map: Record<string, string> = {
-      EmAnalise: 'badge-analise',
-      Aprovada: 'badge-aprovada',
-      Rejeitada: 'badge-rejeitada',
-      Contratada: 'badge-contratada'
+  getStatusClass(status: number): string {
+    const map: Record<StatusNumero, string> = {
+      1: 'badge-analise',
+      2: 'badge-aprovada',
+      3: 'badge-rejeitada',
+      4: 'badge-contratada'
     };
-    return map[status ?? ''] ?? '';
+    return map[status as StatusNumero] ?? '';
   }
 }
