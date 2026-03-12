@@ -36,6 +36,24 @@ Este projeto é a versão em **Vite + React + TypeScript** do front de Propostas
     - classes `app-shell`, `sidebar`, `sidebar-logo`, `nav-item`, `main-content` etc.
   - Isso garante que o visual da versão Vite fique igual ao front React anterior.
 
+### TypeScript com `verbatimModuleSyntax`
+
+- O `tsconfig.app.json` deste projeto usa `verbatimModuleSyntax: true`.
+- Isso significa que:
+  - **Tipos** devem ser importados com `import type { ... } from '...'`.
+  - **Funções/constantes/valores** continuam com `import { ... } from '...'`.
+- Exemplos já aplicados no código:
+  - `src/pages/PropostasPage.tsx`
+  - `src/pages/ContratacoesPage.tsx`
+  - `src/services/propostaService.ts`
+  - `src/services/contratacaoService.ts`
+
+### Fluxo recomendado: build antes de rodar
+
+- Sempre que mexer em types/services/pages:
+  - Rodar `npm run build` em `bmg_front_react_vite` para garantir que o TypeScript e o Vite compilam sem erro.
+  - Depois subir o dev server normalmente com `npm run dev`.
+
 ### Próximo passo (compartilhar as telas)
 
 - O código de **models, services, páginas e modal** está hoje em `bmg_front_react/src/...`.
@@ -50,4 +68,4 @@ Este projeto é a versão em **Vite + React + TypeScript** do front de Propostas
 2. Na pasta `bmg_front_react_vite`:
    - `npm install` (se ainda não rodou).
    - `npm run dev`.
-3. Acessar a porta que o Vite mostrar (por padrão `http://localhost:5173`).
+3. Acessar a porta que o Vite mostrar (por padrão `http://localhost:5173`, ou a próxima livre, ex.: `5174`, `5175`).
