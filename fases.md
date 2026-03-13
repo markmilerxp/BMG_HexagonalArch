@@ -94,19 +94,220 @@ O que foi feito:
 
 ## FASE 1 — Domain Layer
 
-> Em desenvolvimento...
+**Branch:** `feature/sales-domain`
+**Mergeada em:** `develop`
+**Objetivo:** Implementar todo o modelo de domínio de vendas seguindo DDD — entidades, regras de negócio, validators, interfaces de repositório e eventos.
+
+---
+
+### O que foi feito
+
+#### 1. SaleStatus enum
+Enum com sentinela `Unknown = 0` (padrão do template), `Active = 1` e `Cancelled = 2`.
+O validator rejeita o valor `Unknown` — garantia de que o status sempre foi explicitamente definido.
+
+#### 2. SaleItem entity + SaleItemValidator
+`SaleItem` representa um item individual da venda. Campos:
+- `ProductId` + `ProductName` — External Identity pattern (produto pertence a outro domínio)
+- `Quantity`, `UnitPrice`, `Discount`, `TotalAmount`, `IsCancelled`
+
+Método `ApplyDiscount()` encapsula as regras de negócio de desconto:
+- **< 4 itens** → sem desconto
+- **4 a 9 itens** → 10% de desconto
+- **10 a 20 itens** → 20% de desconto
+- **> 20 itens** → lança `DomainException`
+
+`SaleItemValidator` valida via FluentValidation: quantidade entre 1 e 20, preço positivo, campos obrigatórios.
+
+#### 3. Sale aggregate root + SaleValidator
+`Sale` é o agregado raiz do domínio de vendas. Campos principais:
+- `SaleNumber`, `SaleDate`
+- `CustomerId` + `CustomerName` — External Identity
+- `BranchId` + `BranchName` — External Identity
+- `TotalAmount` (calculado, private setter), `Status`, `CreatedAt`, `UpdatedAt`
+- `Items` como `IReadOnlyList<SaleItem>` — encapsulamento via lista privada
+
+Métodos de domínio:
+- `AddItem(productId, productName, quantity, unitPrice)` — cria item, aplica desconto, recalcula total
+- `UpdateItem(itemId, quantity, unitPrice)` — atualiza item existente, recalcula
+- `Cancel()` — muda status para `Cancelled`, lança exceção se já cancelada
+- `CancelItem(itemId)` — cancela item específico, recalcula total
+- `Recalculate()` — soma `TotalAmount` dos itens não cancelados
+
+`SaleValidator` valida todos os campos obrigatórios e delega a validação de cada item ao `SaleItemValidator` via `RuleForEach`.
+
+#### 4. Interfaces dos repositórios
+`ISaleRepository` (escrita — PostgreSQL via EF Core):
+- `CreateAsync`, `GetByIdAsync`, `UpdateAsync`, `DeleteAsync`
+
+`ISaleReadRepository` (leitura — MongoDB):
+- `UpsertAsync`, `GetByIdAsync`, `DeleteAsync`
+- `GetPagedAsync(page, size, order, filters)` — suporta paginação, ordenação e filtros conforme `general-api.md`
+
+#### 5. Eventos de domínio
+Quatro eventos criados para publicação via log (sem Message Broker, conforme README):
+- `SaleCreatedEvent` — carrega a entidade `Sale` completa
+- `SaleModifiedEvent` — carrega a entidade `Sale` atualizada
+- `SaleCancelledEvent` — carrega `SaleId` e `SaleNumber`
+- `ItemCancelledEvent` — carrega `SaleId`, `SaleNumber` e `ItemId`
+
+---
+
+### Arquivos criados
+
+| Arquivo | Descrição |
+|---|---|
+| `Domain/Enums/SaleStatus.cs` | Enum com Unknown/Active/Cancelled |
+| `Domain/Entities/SaleItem.cs` | Entidade item com regras de desconto |
+| `Domain/Validation/SaleItemValidator.cs` | Validator FluentValidation para SaleItem |
+| `Domain/Entities/Sale.cs` | Agregado raiz com todos os métodos de domínio |
+| `Domain/Validation/SaleValidator.cs` | Validator FluentValidation para Sale |
+| `Domain/Repositories/ISaleRepository.cs` | Interface escrita (PostgreSQL) |
+| `Domain/Repositories/ISaleReadRepository.cs` | Interface leitura (MongoDB) com paginação |
+| `Domain/Events/SaleCreatedEvent.cs` | Evento de criação |
+| `Domain/Events/SaleModifiedEvent.cs` | Evento de modificação |
+| `Domain/Events/SaleCancelledEvent.cs` | Evento de cancelamento de venda |
+| `Domain/Events/ItemCancelledEvent.cs` | Evento de cancelamento de item |
+
+---
+
+### Commits da fase
+
+| Hash | Tipo | Descrição |
+|---|---|---|
+| `befd56b` | `feat(domain)` | Add SaleStatus enum with Unknown sentinel value |
+| `c782921` | `feat(domain)` | Add SaleItem entity with quantity-based discount business rules |
+| `773a194` | `feat(domain)` | Add Sale aggregate root with AddItem, Cancel, CancelItem and Recalculate methods |
+| `46037b9` | `feat(domain)` | Add ISaleRepository and ISaleReadRepository interfaces with pagination support |
+| `da75ae2` | `feat(domain)` | Add SaleCreated, SaleModified, SaleCancelled and ItemCancelled domain events |
 
 ---
 
 ## FASE 2 — Application Layer (CQRS)
 
-> Aguardando Fase 1.
+**Branch:** `feature/sales-application`
+**Objetivo:** Implementar a camada de aplicação seguindo CQRS com MediatR — Commands, Queries, Handlers, Validators e Profiles para o domínio de Sales.
+
+---
+
+### O que foi feito
+
+#### CreateSale — Criar venda
+
+Primeiro grupo de arquivos implementado. Responsável por receber a requisição de criação de uma venda, validar, aplicar regras de negócio e persistir via repositório.
+
+**`CreateSaleCommand`**
+- Input da operação: `SaleNumber`, `SaleDate`, `CustomerId`/`CustomerName`, `BranchId`/`BranchName` (External Identities) e lista de `CreateSaleItemCommand`
+- Implementa `IRequest<CreateSaleResult>` para integração com MediatR
+- Expõe método `Validate()` seguindo o padrão do template
+
+**`CreateSaleValidator`**
+- Valida todos os campos obrigatórios da venda e de cada item
+- Regra de negócio: quantidade máxima de 20 itens por produto
+- Usa `RuleForEach` com `ChildRules` para validar cada item da lista
+
+**`CreateSaleHandler`**
+- Recebe o `CreateSaleCommand`, valida, cria o agregado `Sale`
+- Chama `sale.AddItem()` para cada item — que internamente aplica as regras de desconto (`ApplyDiscount()`)
+- Persiste via `ISaleRepository.CreateAsync()`
+- Mapeia o resultado com AutoMapper
+
+**`CreateSaleResult`**
+- Output completo: todos os campos da venda + lista de itens com `Discount` e `TotalAmount` calculados
+
+**`CreateSaleProfile`**
+- AutoMapper: `Sale → CreateSaleResult` e `SaleItem → CreateSaleItemResult`
+
+---
+
+### Arquivos criados
+
+| Arquivo | Descrição |
+|---|---|
+| `Application/Sales/CreateSale/CreateSaleCommand.cs` | Command de entrada com itens |
+| `Application/Sales/CreateSale/CreateSaleValidator.cs` | Validação FluentValidation |
+| `Application/Sales/CreateSale/CreateSaleHandler.cs` | Handler MediatR |
+| `Application/Sales/CreateSale/CreateSaleResult.cs` | DTO de saída |
+| `Application/Sales/CreateSale/CreateSaleProfile.cs` | Mapeamento AutoMapper |
+
+---
+
+### Commits da fase (em andamento)
+
+| Hash | Tipo | Descrição |
+|---|---|---|
+| `a0697e2` | `feat(application)` | Add CreateSale command, handler, validator, result and profile |
 
 ---
 
 ## FASE 3 — ORM Layer (PostgreSQL — Escrita)
 
-> Aguardando Fase 1.
+**Branch:** `feature/sales-orm`
+**Objetivo:** Mapear as entidades do domínio para o banco relacional PostgreSQL via EF Core, implementar o repositório de escrita e gerar a migration.
+
+---
+
+### O que foi feito
+
+#### 1. SaleConfiguration e SaleItemConfiguration
+Mapeamentos Fluent API para as entidades do domínio:
+
+- `SaleConfiguration` — mapeia `Sale` para a tabela `Sales`:
+  - `SaleStatus` convertido para string com `HasConversion<string>()` (padrão do template)
+  - Relação 1:N com `SaleItem` configurada como `HasMany / WithOne` com `OnDelete(Cascade)`
+  - `TotalAmount` com precisão decimal `(18, 2)`
+  - `SaleNumber` indexado como único (`HasIndex(...).IsUnique()`)
+
+- `SaleItemConfiguration` — mapeia `SaleItem` para a tabela `SaleItems`:
+  - `UnitPrice`, `Discount` e `TotalAmount` com precisão `(18, 2)`
+  - `ProductName` limitado a 500 caracteres
+  - `SaleId` como foreign key
+
+#### 2. DefaultContext
+- `DbSet<Sale> Sales` e `DbSet<SaleItem> SaleItems` adicionados ao contexto
+- `MigrationsAssembly` corrigido de `WebApi` para `ORM` no `YourDbContextFactory`
+
+#### 3. SaleRepository
+Implementação de `ISaleRepository` usando EF Core:
+- `CreateAsync` — adiciona e salva
+- `GetByIdAsync` — `Include(s => s.Items)` para carregar os itens junto
+- `UpdateAsync` — `Update` + `SaveChanges`
+- `DeleteAsync` — busca por id, remove e salva
+
+#### 4. IoC — registro de ISaleRepository
+`ISaleRepository` registrado como `Scoped` em `InfrastructureModuleInitializer`.
+
+#### 5. Migration EF Core
+Migration `AddSalesAndSaleItems` gerada automaticamente com `dotnet ef migrations add`. Cria as tabelas `Sales` e `SaleItems` com todos os campos, constraints e foreign keys.
+
+---
+
+### Arquivos modificados / criados
+
+| Arquivo | Tipo |
+|---|---|
+| `ORM/Mapping/SaleConfiguration.cs` | Criado |
+| `ORM/Mapping/SaleItemConfiguration.cs` | Criado |
+| `ORM/DefaultContext.cs` | Modificado |
+| `ORM/Repositories/SaleRepository.cs` | Criado |
+| `IoC/ModuleInitializers/InfrastructureModuleInitializer.cs` | Modificado |
+| `ORM/Migrations/..._AddSalesAndSaleItems.cs` | Criado (gerado) |
+| `ORM/Migrations/..._AddSalesAndSaleItems.Designer.cs` | Criado (gerado) |
+
+---
+
+### Commits da fase
+
+| Hash | Tipo | Descrição |
+|---|---|---|
+| `c02af54` | `feat(orm)` | Add SaleConfiguration EF Core mapping for Sales table |
+| `a9e36aa` | `feat(orm)` | Add SaleItemConfiguration EF Core mapping for SaleItems table |
+| `fefb8e1` | `feat(orm)` | Add DbSet Sales and SaleItems to DefaultContext |
+| `541d981` | `feat(orm)` | Implement SaleRepository with EF Core |
+| `4268d1a` | `feat(ioc)` | Register ISaleRepository in DI container |
+| `6f168eb` | `feat(orm)` | Add EF Core migration for Sales and SaleItems tables |
+
+---
 
 ---
 
